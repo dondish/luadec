@@ -509,7 +509,7 @@ int luaU_guess_locals(Proto* f, int main) {
 				loadreg2 = c;
 			}
 			break;
-#if LUA_VERSION_NUM 504
+#if LUA_VERSION_NUM == 504
 		case OP_EQ:
 		case OP_LT:
 		case OP_LE:
