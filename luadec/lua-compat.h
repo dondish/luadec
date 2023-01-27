@@ -21,7 +21,7 @@
 #if LUA_VERSION_NUM == 501 || LUA_VERSION_NUM == 502
 	#define LUA_STRLEN(ts) ((ts)->tsv.len)
 #endif
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 	#define lua_open()	luaL_newstate()
 	#define luadec_freearray(L, b, n, t) luaM_freearray(L, b, n)
 
@@ -35,7 +35,7 @@
 	// Lua >= 5.2 : is_vararg = 0 1 , never use parament arg, but main has a global arg
 	#define NEED_ARG(f) 0
 #endif
-#if LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 	#define rawtsvalue(o) tsvalue(o)
 
 	#ifdef tsslen

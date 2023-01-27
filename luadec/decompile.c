@@ -1881,7 +1881,7 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 		if (o == OP_CLOSE) {
 			int startreg = a;
 #endif
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 		if (o == OP_JMP && a > 0) {
 			// instead OP_CLOSE in 5.2 : if (A) close all upvalues >= R(A-1)
 			int startreg = a - 1;
@@ -1991,19 +1991,19 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 
 		F->pc = pc;
 
-		// pop 所有 endpc < pc 的
+		// pop 锟斤拷锟斤拷 endpc < pc 锟斤拷
 		while (RvarTop > 0 && f->locvars[Rvar[RvarTop-1]].endpc < pc + 1) {
 			RvarTop--;
 			Rvar[RvarTop] = -1;
 		}
-		// push 所有 startpc <= pc 的，移到下一个未使用的变量
+		// push 锟斤拷锟斤拷 startpc <= pc 锟侥ｏ拷锟狡碉拷锟斤拷一锟斤拷未使锟矫的憋拷锟斤拷
 		while (currLocVar < f->sizelocvars && f->locvars[currLocVar].startpc <= pc + 1) {
 			Rvar[RvarTop] = currLocVar;
 			RvarTop++;
 			currLocVar++;
 			TestLocVarIndex(RvarTop-1, pc);
 		}
-		// 那么此时 vars[r] 即对应 reg[r] 的变量
+		// 锟斤拷么锟斤拷时 vars[r] 锟斤拷锟斤拷应 reg[r] 锟侥憋拷锟斤拷
 
 		if (pc > F->loop_ptr->end) {
 			next_child = F->loop_ptr->next;
