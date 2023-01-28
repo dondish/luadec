@@ -215,6 +215,9 @@ int luaU_guess_locals(Proto* f, int main) {
 		int c = GETARG_C(instr);
 		int bc = GETARG_Bx(instr);
 		int sbc = GETARG_sBx(instr);
+#if LUA_VERSION_NUM == 504
+		int sj = GETARG_sJ(instr);
+#endif
 		int dest = 0;
 		int setreg = -1;
 		int setregto = -1;
@@ -231,11 +234,21 @@ int luaU_guess_locals(Proto* f, int main) {
 			continue;
 		}
 
+#if LUA_VERSION_NUM == 504
+		if (o==OP_JMP) {
+			dest = pc + sj + 2;
+		} else if (o==OP_FORPREP || o == OP_TFORPREP) {
+			dest = pc + sbc + 2;
+		} else if ((pc+1!=f->sizecode) && (GET_OPCODE(f->code[pc+1])==OP_JMP)) {
+			dest = pc + 1 + GETARG_sBx(f->code[pc+1]) + 2;
+		}
+#else
 		if ((o==OP_JMP) || (o==OP_FORPREP)) {
 			dest = pc + sbc + 2;
 		} else if ((pc+1!=f->sizecode) && (GET_OPCODE(f->code[pc+1])==OP_JMP)) {
 			dest = pc + 1 + GETARG_sBx(f->code[pc+1]) + 2;
 		}
+#endif
 
 		// check which registers were read or written to.
 		switch (o) {
@@ -458,6 +471,9 @@ int luaU_guess_locals(Proto* f, int main) {
 			loadreg = a;
 			break;
 		case OP_RETURN0:
+		case OP_MMBIN:
+		case OP_MMBINI:
+		case OP_MMBINK:
 			break;
 #endif
 		case OP_RETURN:
