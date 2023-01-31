@@ -200,7 +200,7 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 		case OP_LOADI:
 			/*	A sBx	R[A] := sBx					*/
 			sprintf(line,"R%d %d",a,bc);
-			StringBuffer_printf(lend,"R%d := %s",a,bc);
+			StringBuffer_printf(lend,"R%d := %d",a,bc);
 			break;
 		case OP_LOADF:
 			/*	A sBx	R[A] := (lua_Number)sBx				*/
@@ -272,6 +272,7 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 		case OP_VARARG:
 			/*	A B	R(A), R(A+1), ..., R(A+B-2) = vararg		*/
 			// lua-5.1 and ANoFrillsIntroToLua51VMInstructions.pdf are wrong
+{
 #if LUA_VERSION_NUM == 504
 			int to_reg = c;
 #else
@@ -285,6 +286,7 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 			} else if (to_reg == 0) {
 				StringBuffer_printf(lend, "R%d to top := ...", a);
 			}
+}
 			break;
 #if LUA_VERSION_NUM == 504
 		case OP_VARARGPREP:
@@ -674,6 +676,7 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 
 #endif
 		case OP_FORLOOP:
+{
 			/*	A sBx	R(A)+=R(A+2);
 				if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }*/
 			/* Since 5.4, sBx was replaced by Bx */
@@ -685,10 +688,12 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 			dest = pc + jump_len + 1;
 			sprintf(line, "R%d %d", a, jump_len);
 			StringBuffer_printf(lend, "R%d += R%d; if R%d <= R%d then R%d := R%d; PC += %d , goto %d end", a, a+2, a, a+1, a+3, a, jump_len, dest);
+}
 			break;
 		case OP_FORPREP:
 			/*	A sBx	R(A)-=R(A+2); pc+=sBx				*/
 			/* Since 5.4, sBx was replaced by Bx */
+{
 #if LUA_VERSION_NUM == 504
 			int jump_len = bx;
 #else
@@ -697,6 +702,7 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 			dest = pc + jump_len + 1;
 			sprintf(line,"R%d %d",a,jump_len);
 			StringBuffer_printf(lend,"R%d -= R%d; pc += %d (goto %d)",a,a+2,jump_len,dest);
+}
 			break;
 #if LUA_VERSION_NUM == 504
 		case OP_TFORPREP:
@@ -709,6 +715,7 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 		case LUADEC_TFORLOOP:
 			/*	A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));	*/
 			/*	Since 5.4, the return registers start from A+4, as A+3 holds the to-be-closed variable */
+{
 #if LUA_VERSION_NUM == 504
 			int from_reg = a+4;
 			int to_reg = a+c+3;
@@ -729,11 +736,13 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 			// only in 5.1 : if R(A+3) ~= nil then R(A+2)=R(A+3) else pc++
 			StringBuffer_addPrintf(lend, "; if R%d ~= nil then R%d := R%d else goto %d", a+3, a+2, a+3, pc+2);
 #endif
+}
 			break;
 #if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 		case OP_TFORLOOP:
 			/*	A sBx	if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
 			/*	5.4 the return registers start from A+4, as A+3 holds the to-be-closed variable */
+{
 #if LUA_VERSION_NUM == 504
 			int jump_len = bx;
 			int next_val_reg = a+2;
@@ -744,6 +753,7 @@ void luadec_disassemble(Proto* fwork, int dflag, const char* name) {
 			dest = pc + jump_len + 1;
 			sprintf(line,"R%d %d",a,jump_len);
 			StringBuffer_printf(lend,"if R%d ~= nil then { R%d := R%d ; pc += %d (goto %d) }",next_val_reg,a, next_val_reg, jump_len, dest);
+}
 			break;
 #endif
 		case OP_SETLIST:

@@ -281,7 +281,7 @@ char* DecompileConstant(const Proto* f, int i) {
 	const TValue* o = &f->k[i];
 	switch (ttype(o)) {
 	case LUA_TBOOLEAN:
-		return strdup(bvalue(o)?"true":"false");
+		return strdup(ttistrue(o)?"true":"false");
 	case LUA_TNIL:
 		return strdup("nil");
 #if LUA_VERSION_NUM == 501 || LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 504

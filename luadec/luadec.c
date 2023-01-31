@@ -343,9 +343,17 @@ Proto* combine(lua_State* L, int n) {
 		for (i=0; i<n; i++) {
 			f->p[i]=toproto(L,i-n);
 			f->code[pc++]=CREATE_ABx(OP_CLOSURE,0,i);
+#if LUA_VERSION_NUM == 504
+			f->code[pc++]=CREATE_ABCk(OP_CALL,0,1,1,0);
+#else
 			f->code[pc++]=CREATE_ABC(OP_CALL,0,1,1);
+#endif
 		}
+#if LUA_VERSION_NUM == 504
+		f->code[pc++]=CREATE_ABCk(OP_CALL,0,1,0,0);
+#else
 		f->code[pc++]=CREATE_ABC(OP_RETURN,0,1,0);
+#endif
 		if (LDS2) {
 			Inject(f,0);
 			for (i=0; i<n; i++) {

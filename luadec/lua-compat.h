@@ -48,92 +48,26 @@
 #define MAXSTACK MAXREGS
 #endif
 #if LUA_VERSION_NUM == 504
-// Since 5.4 luaP_opnames was removed
-const char *const luaP_opnames[NUM_OPCODES + 1] = {
-	"MOVE",
-	"LOADI",
-	"LOADF",
-	"LOADK",
-	"LOADKX",
-	"LOADFALSE",
-	"LFALSESKIP",
-	"LOADTRUE",
-	"LOADNIL",
-	"GETUPVAL",
-	"SETUPVAL",
-	"GETTABUP",
-	"GETTABLE",
-	"GETI",
-	"GETFIELD",
-	"SETTABUP",
-	"SETTABLE",
-	"SETI",
-	"SETFIELD",
-	"NEWTABLE",
-	"SELF",
-	"ADDI",
-	"ADDK",
-	"SUBK",
-	"MULK",
-	"MODK",
-	"POWK",
-	"DIVK",
-	"IDIVK",
-	"BANDK",
-	"BORK",
-	"BXORK",
-	"SHRI",
-	"SHLI",
-	"ADD",
-	"SUB",
-	"MUL",
-	"MOD",
-	"POW",
-	"DIV",
-	"IDIV",
-	"BAND",
-	"BOR",
-	"BXOR",
-	"SHL",
-	"SHR",
-	"MMBIN",
-	"MMBINI",
-	"MMBINK",
-	"UNM",
-	"BNOT",
-	"NOT",
-	"LEN",
-	"CONCAT",
-	"CLOSE",
-	"TBC",
-	"JMP",
-	"EQ",
-	"LT",
-	"LE",
-	"EQK",
-	"EQI",
-	"LTI",
-	"LEI",
-	"GTI",
-	"GEI",
-	"TEST",
-	"TESTSET",
-	"CALL",
-	"TAILCALL",
-	"RETURN",
-	"RETURN0",
-	"RETURN1",
-	"FORLOOP",
-	"FORPREP",
-	"TFORPREP",
-	"TFORCALL",
-	"TFORLOOP",
-	"SETLIST",
-	"CLOSURE",
-	"VARARG",
-	"VARARGPREP",
-	"EXTRAARG",
-	NULL};
+// Since 5.4 luaP_opnames was replaced by opnames in lopnames.h
+#include "lopnames.h"
+#define luaP_opnames opnames
+/*
+** Macros that were removed from lopcodes.h
+*/
+
+/* this bit 1 means constant (0 means register) */
+#define BITRK		(1 << (SIZE_B - 1))
+
+/* test whether value is a constant */
+#define ISK(x)		((x) & BITRK)
+
+/* gets the index of the constant */
+#define INDEXK(r)	((int)(r) & ~BITRK)
+
+#define MAXINDEXRK	(BITRK - 1)
+
+/* code a constant index as a RK value */
+#define RKASK(x)	((x) | BITRK)
 #endif
 
 #endif // #ifndef LUADEC_LUA_COMPAT_H
