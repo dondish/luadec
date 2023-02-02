@@ -903,8 +903,16 @@ DecTable* NewTable(int r, int b, int c, int pc) {
 	InitList(&(self->array));
 	InitList(&(self->keyed));
 	self->reg = r;
+#if LUA_VERSION_NUM == 504
+	self->arraySize = (b > 0) ? (1 << (b-1)) : 0;
+#else
 	self->arraySize = luaO_fb2int(b);
+#endif
+#if LUA_VERSION_NUM == 504
+	self-> keyedSize = c;
+#else
 	self->keyedSize = luaO_fb2int(c);
+#endif
 	self->pc = pc;
 	return self;
 }
@@ -1881,7 +1889,7 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 		if (o == OP_CLOSE) {
 			int startreg = a;
 #endif
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 		if (o == OP_JMP && a > 0) {
 			// instead OP_CLOSE in 5.2 : if (A) close all upvalues >= R(A-1)
 			int startreg = a - 1;
@@ -1896,7 +1904,7 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 			// OP_TFORLOOP /* A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));if R(A+3) ~= nil then R(A+2)=R(A+3) else pc++	*/
 			// OP_JMP /* sBx	pc += sBx */
 #endif
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 		if (o == OP_TFORLOOP) {
 			// OP_TFORCALL /* A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2)); */
 			// OP_TFORLOOP /* A sBx	if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx } */
@@ -1991,19 +1999,19 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 
 		F->pc = pc;
 
-		// pop ËùÓÐ endpc < pc µÄ
+		// pop ï¿½ï¿½ï¿½ï¿½ endpc < pc ï¿½ï¿½
 		while (RvarTop > 0 && f->locvars[Rvar[RvarTop-1]].endpc < pc + 1) {
 			RvarTop--;
 			Rvar[RvarTop] = -1;
 		}
-		// push ËùÓÐ startpc <= pc µÄ£¬ÒÆµ½ÏÂÒ»¸öÎ´Ê¹ÓÃµÄ±äÁ¿
+		// push ï¿½ï¿½ï¿½ï¿½ startpc <= pc ï¿½Ä£ï¿½ï¿½Æµï¿½ï¿½ï¿½Ò»ï¿½ï¿½Î´Ê¹ï¿½ÃµÄ±ï¿½ï¿½ï¿½
 		while (currLocVar < f->sizelocvars && f->locvars[currLocVar].startpc <= pc + 1) {
 			Rvar[RvarTop] = currLocVar;
 			RvarTop++;
 			currLocVar++;
 			TestLocVarIndex(RvarTop-1, pc);
 		}
-		// ÄÇÃ´´ËÊ± vars[r] ¼´¶ÔÓ¦ reg[r] µÄ±äÁ¿
+		// ï¿½ï¿½Ã´ï¿½ï¿½Ê± vars[r] ï¿½ï¿½ï¿½ï¿½Ó¦ reg[r] ï¿½Ä±ï¿½ï¿½ï¿½
 
 		if (pc > F->loop_ptr->end) {
 			next_child = F->loop_ptr->next;
@@ -2193,6 +2201,8 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 		case OP_EXTRAARG:
 			break;
 #endif
+#if LUA_VERSION_NUM == 504
+#else
 		case OP_LOADBOOL:
 		{
 			if ((F->bools.size == 0) || (c==0)) {
@@ -2218,6 +2228,7 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 				ignoreNext = 1;
 			break;
 		}
+#endif
 		case OP_LOADNIL:
 		{
 			int ra, rb;
@@ -2594,7 +2605,11 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 				AddAstStatement(F, tforstmt);
 				F->currStmt = tforstmt;
 				break;
+#if LUA_VERSION_NUM == 504
+			} else if (sbc == 2 && GET_OPCODE(code[pc+2]) >= OP_LOADFALSE && GET_OPCODE(code[pc+2]) <= OP_LOADTRUE ) {
+#else
 			} else if (sbc == 2 && GET_OPCODE(code[pc+2]) == OP_LOADBOOL) {
+#endif
 				/*
 				* y = (a > b or c) -- assigne statement may be bool or value
 				* JMP 2
@@ -2624,7 +2639,11 @@ char* ProcessCode(Proto* f, int indent, int func_checking, char* funcnumstr) {
 				if (test) free(test);
 				ignoreNext = 2;
 				}
+#if LUA_VERSION_NUM == 504
+			} else if (GET_OPCODE(idest) >= OP_LOADFALSE && GET_OPCODE(idest) <= OP_LOADTRUE) { // WHY
+#else
 			} else if (GET_OPCODE(idest) == OP_LOADBOOL) { // WHY
+#endif
 				/*
 				* y = (a or b==c) -- assigne statement may be bool (calucate at last)
 				* constant boolean value
@@ -3075,14 +3094,14 @@ LOGIC_NEXT_JMP:
 					OpCode op = GET_OPCODE(ins);
 					int b = GETARG_B(ins);
 #endif
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 					Upvaldesc upval = cf->upvalues[i];
 					int b = upval.idx;
 #endif
 #if LUA_VERSION_NUM == 501
 					if (op == OP_MOVE) {
 #endif
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 					if (upval.instack == 1) {
 #endif
 						// Rvar[b] is enough
@@ -3099,7 +3118,7 @@ LOGIC_NEXT_JMP:
 #if LUA_VERSION_NUM == 501
 					} else if (op == OP_GETUPVAL) {
 #endif
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 					} else if (upval.instack == 0) {
 #endif
 						// Get name from upvalue name

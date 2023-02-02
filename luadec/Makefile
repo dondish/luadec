@@ -22,7 +22,7 @@ LIBS= -lm $(MYLIBS)
 
 ifeq ($(wildcard /dev/null),)
 	DEV_NULL= NUL
-	RM= cmd //c del //f //s //q
+	RM= cmd /c del /f /s /q
 endif
 
 SRCVERSION=UNKNOWN

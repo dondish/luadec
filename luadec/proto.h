@@ -34,8 +34,12 @@ struct Inst_ {
 	int c;
 	int bx;
 	int sbx;
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 	int ax;
+#endif
+#if LUA_VERSION_NUM == 504
+	int sj;
+	int k;
 #endif
 };
 

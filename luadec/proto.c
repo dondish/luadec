@@ -24,8 +24,12 @@ Inst extractInstruction(Instruction i) {
 	inst.c = GETARG_C(i);
 	inst.bx = GETARG_Bx(i);
 	inst.sbx = GETARG_sBx(i);
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 	inst.ax = GETARG_Ax(i);
+#endif
+#if LUA_VERSION_NUM == 504
+	inst.sj = GETARG_sJ(i);
+	inst.k = GETARG_k(i);
 #endif
 	return inst;
 }
@@ -34,7 +38,11 @@ Instruction assembleInstruction(Inst inst) {
 	Instruction i;
 	switch (getOpMode(inst.op)) {
 	case iABC:
+#if LUA_VERSION_NUM == 504
+		i = CREATE_ABCk(inst.op, inst.a, inst.b, inst.c, inst.k);
+#else
 		i = CREATE_ABC(inst.op, inst.a, inst.b, inst.c);
+#endif
 		break;
 	case iABx:
 		i = CREATE_ABx(inst.op, inst.a, inst.bx);
@@ -42,10 +50,14 @@ Instruction assembleInstruction(Inst inst) {
 	case iAsBx:
 		i = CREATE_ABx(inst.op, inst.a, inst.sbx);
 		break;
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 	case iAx:
 		i = CREATE_Ax(inst.op, inst.ax);
 		break;
+#endif
+#if LUA_VERSION_NUM == 504
+	case isJ:
+		i = CREATE_sJ(inst.op, inst.sj, 0);
 #endif
 	}
 	return i;
@@ -67,7 +79,7 @@ void InitOperators() {
 	operators[OP_ADD] = "+"; priorities[OP_ADD] = 4;
 	operators[OP_SUB] = "-"; priorities[OP_SUB] = 4;
 	operators[OP_CONCAT] = ".."; priorities[OP_CONCAT] = 5;
-#if LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 	operators[OP_BNOT] = "~"; priorities[OP_BNOT] = 2;
 	operators[OP_IDIV] = "//"; priorities[OP_IDIV] = 3;
 	operators[OP_SHL] = "<<"; priorities[OP_SHL] = 6;
@@ -75,6 +87,20 @@ void InitOperators() {
 	operators[OP_BAND] = "&"; priorities[OP_BAND] = 7;
 	operators[OP_BXOR] = "~"; priorities[OP_BXOR] = 8;
 	operators[OP_BOR] = "|"; priorities[OP_BOR] = 9;
+#endif
+#if LUA_VERSION_NUM == 504
+	operators[OP_POWK] = "^"; priorities[OP_POWK] = 1;
+	operators[OP_MULK] = "*"; priorities[OP_MULK] = 3;
+	operators[OP_DIVK] = "/"; priorities[OP_DIVK] = 3;
+	operators[OP_MODK] = "%"; priorities[OP_MODK] = 3;
+	operators[OP_ADDK] = "+"; priorities[OP_ADDK] = 4;
+	operators[OP_ADDI] = "+"; priorities[OP_ADDI] = 4;
+	operators[OP_SUBK] = "-"; priorities[OP_SUBK] = 4;
+	operators[OP_BANDK] = "&"; priorities[OP_BANDK] = 7;
+	operators[OP_BXORK] = "~"; priorities[OP_BXORK] = 8;
+	operators[OP_BORK] = "|"; priorities[OP_BORK] = 9;
+	operators[OP_SHLI] = "<<"; priorities[OP_SHLI] = 6;
+	operators[OP_SHRI] = ">>"; priorities[OP_SHRI] = 6;
 #endif
 }
 
@@ -255,10 +281,10 @@ char* DecompileConstant(const Proto* f, int i) {
 	const TValue* o = &f->k[i];
 	switch (ttype(o)) {
 	case LUA_TBOOLEAN:
-		return strdup(bvalue(o)?"true":"false");
+		return strdup(ttistrue(o)?"true":"false");
 	case LUA_TNIL:
 		return strdup("nil");
-#if LUA_VERSION_NUM == 501 || LUA_VERSION_NUM == 502
+#if LUA_VERSION_NUM == 501 || LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 504
 	case LUA_TNUMBER:
 	{
 		char* ret = (char*)calloc(128, sizeof(char));

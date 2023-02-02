@@ -215,6 +215,9 @@ int luaU_guess_locals(Proto* f, int main) {
 		int c = GETARG_C(instr);
 		int bc = GETARG_Bx(instr);
 		int sbc = GETARG_sBx(instr);
+#if LUA_VERSION_NUM == 504
+		int sj = GETARG_sJ(instr);
+#endif
 		int dest = 0;
 		int setreg = -1;
 		int setregto = -1;
@@ -231,11 +234,21 @@ int luaU_guess_locals(Proto* f, int main) {
 			continue;
 		}
 
+#if LUA_VERSION_NUM == 504
+		if (o==OP_JMP) {
+			dest = pc + sj + 2;
+		} else if (o==OP_FORPREP || o == OP_TFORPREP) {
+			dest = pc + sbc + 2;
+		} else if ((pc+1!=f->sizecode) && (GET_OPCODE(f->code[pc+1])==OP_JMP)) {
+			dest = pc + 1 + GETARG_sBx(f->code[pc+1]) + 2;
+		}
+#else
 		if ((o==OP_JMP) || (o==OP_FORPREP)) {
 			dest = pc + sbc + 2;
 		} else if ((pc+1!=f->sizecode) && (GET_OPCODE(f->code[pc+1])==OP_JMP)) {
 			dest = pc + 1 + GETARG_sBx(f->code[pc+1]) + 2;
 		}
+#endif
 
 		// check which registers were read or written to.
 		switch (o) {
@@ -257,18 +270,30 @@ int luaU_guess_locals(Proto* f, int main) {
 			setreg = a;
 			setregto = b;
 			break;
+#if LUA_VERSION_NUM == 504
+		case OP_LOADI:
+		case OP_LOADF:
+#endif
 		case OP_LOADK:
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 		case OP_LOADKX:
 #endif
 		case OP_GETUPVAL:
 #if LUA_VERSION_NUM == 501
 		case OP_GETGLOBAL:
 #endif
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 		case OP_GETTABUP:
 #endif
+#if LUA_VERSION_NUM == 504
+			setreg = a;
+			break;
+		case OP_LOADTRUE:
+		case OP_LOADFALSE:
+		case OP_LFALSESKIP:
+#else
 		case OP_LOADBOOL:
+#endif
 		case OP_NEWTABLE:
 		case OP_CLOSURE:
 			setreg = a;
@@ -276,21 +301,35 @@ int luaU_guess_locals(Proto* f, int main) {
 		case OP_GETTABLE:
 			setreg = a;
 			loadreg = b;
+#if LUA_VERSION_NUM == 504
+			loadreg2 = c;
+#else
 			if (!ISK(c)) {
 				loadreg2 = c;
 			}
+#endif
 			break;
+#if LUA_VERSION_NUM == 504
+		case OP_GETI:
+		case OP_GETFIELD:
+			setreg = a;
+			loadreg = b;
+			break;
+
+#endif 
 #if LUA_VERSION_NUM == 501
 		case OP_SETGLOBAL:
 #endif
 		case OP_SETUPVAL:
 			loadreg = a;
 			break;
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 		case OP_SETTABUP:
+#if LUA_VERSION_NUM != 504
 			if (!ISK(b)) {
 				loadreg2 = b;
 			}
+#endif
 			if (!ISK(c)) {
 				if (loadreg2==-1) {
 					loadreg2 = c;
@@ -302,9 +341,13 @@ int luaU_guess_locals(Proto* f, int main) {
 #endif
 		case OP_SETTABLE:
 			loadreg = a;
+#if LUA_VERSION_NUM == 504
+			loadreg2 = b;
+#else
 			if (!ISK(b)) {
 				loadreg2 = b;
 			}
+#endif
 			if (!ISK(c)) {
 				if (loadreg2==-1) {
 					loadreg2 = c;
@@ -320,6 +363,27 @@ int luaU_guess_locals(Proto* f, int main) {
 				intlocto = a-1;
 			}
 			break;
+#if LUA_VERSION_NUM == 504
+		case OP_SETI:
+		case OP_SETFIELD:
+			loadreg = a;
+			if (!ISK(c)) {
+				if (loadreg2==-1) {
+					loadreg2 = c;
+				} else {
+					loadreg3 = c;
+				}
+				if ((a+1!=c) && (c>a)) {
+					intlocto = c-1;
+				}
+			}
+			intlocfrom = 0;
+			if (a-1>=intlocto) {
+				intlocto = a-1;
+			}
+			break;
+#endif
+#if LUA_VERSION_NUM == 501 || LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
 		case OP_ADD:
 		case OP_SUB:
 		case OP_MUL:
@@ -338,10 +402,50 @@ int luaU_guess_locals(Proto* f, int main) {
 				}
 			}
 			break;
-		case OP_CONCAT:
+#endif
+#if LUA_VERSION_NUM == 504
+		case OP_ADDI:
+		case OP_ADDK:
+		case OP_SUBK:
+		case OP_MULK:
+		case OP_MODK:
+		case OP_POWK:
+		case OP_DIVK:
+		case OP_IDIVK:
+		case OP_BANDK:
+		case OP_BORK:
+		case OP_BXORK:
+		case OP_SHRI:
+		case OP_SHLI:
 			setreg = a;
 			loadreg = b;
+			break;
+		case OP_ADD:
+		case OP_SUB:
+		case OP_MUL:
+		case OP_MOD:
+		case OP_POW:
+		case OP_DIV:
+		case OP_IDIV:
+		case OP_BAND:
+		case OP_BOR:
+		case OP_BXOR:
+		case OP_SHL:
+		case OP_SHR:
+			setreg = a;
+			loadreg = b;
+			loadreg2 = c;
+			break;
+#endif
+		case OP_CONCAT:
+			setreg = a;
+#if LUA_VERSION_NUM == 504
+			loadreg = a;
+			loadregto = a+b-1;
+#else
+			loadreg = b;
 			loadregto = c;
+#endif
 			break;
 		case OP_CALL:
 			if (c==0) {
@@ -362,6 +466,16 @@ int luaU_guess_locals(Proto* f, int main) {
 				loadregto = a+b-1;
 			}
 			break;
+#if LUA_VERSION_NUM == 504 
+		case OP_RETURN1:
+			loadreg = a;
+			break;
+		case OP_RETURN0:
+		case OP_MMBIN:
+		case OP_MMBINI:
+		case OP_MMBINK:
+			break;
+#endif
 		case OP_RETURN:
 			if (b==0) {
 				loadreg = a;
@@ -381,6 +495,15 @@ int luaU_guess_locals(Proto* f, int main) {
 			}
 			break;
 		case OP_VARARG:
+#if LUA_VERSION_NUM == 504
+			if (c==0) {
+				setreg = a;
+				setregto = f->maxstacksize;
+			} else {
+				setreg = a;
+				setregto = a+c-1;
+			}
+#else
 			if (b==0) {
 				setreg = a;
 				setregto = f->maxstacksize;
@@ -388,6 +511,7 @@ int luaU_guess_locals(Proto* f, int main) {
 				setreg = a;
 				setregto = a+b-1;
 			}
+#endif
 			break;
 		case OP_SELF:
 			setreg = a;
@@ -401,6 +525,22 @@ int luaU_guess_locals(Proto* f, int main) {
 				loadreg2 = c;
 			}
 			break;
+#if LUA_VERSION_NUM == 504
+		case OP_EQ:
+		case OP_LT:
+		case OP_LE:
+			loadreg = a;
+			loadreg2 = b;
+			break;
+		case OP_EQK:
+		case OP_EQI:
+		case OP_LTI:
+		case OP_LEI:
+		case OP_GTI:
+		case OP_GEI:
+			loadreg = a;
+			break;
+#else
 		case OP_EQ:
 		case OP_LT:
 		case OP_LE:
@@ -415,6 +555,7 @@ int luaU_guess_locals(Proto* f, int main) {
 				}
 			}
 			break;
+#endif
 		case OP_TEST:
 			loadreg = a;
 			break;
@@ -434,8 +575,11 @@ int luaU_guess_locals(Proto* f, int main) {
 			}
 			break;
 		case OP_FORLOOP:
-#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM == 502 || LUA_VERSION_NUM == 503 || LUA_VERSION_NUM == 504
 		case OP_TFORCALL:
+#endif
+#if LUA_VERSION_NUM == 504
+		case OP_TFORPREP:
 #endif
 		case OP_TFORLOOP:
 			break;

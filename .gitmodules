@@ -19,3 +19,7 @@
 	path = lua-5.3
 	url = https://github.com/viruscamp/lua5
 	branch = 5.3
+[submodule "lua-5.4"]
+	path = lua-5.4
+	url = https://github.com/viruscamp/lua5.git
+	branch = 5.4
